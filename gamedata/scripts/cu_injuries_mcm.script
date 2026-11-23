@@ -4,6 +4,7 @@
 local defaults = {
     fade_duration     = 12,  -- Длительность затухания (сек)
     hemothorax_chance = 40,  -- Шанс гемоторакса от тяжелого ранения в грудь (%)
+    hemothorax_min_hp = 20,  -- Минимальный процент хп для возникновения гемоторакса (%)
     low_pain_duration = 5,
     medium_pain_duration = 12,
     heavy_pain_duration = 25,
@@ -42,6 +43,7 @@ function on_mcm_load()
             -- БЛОК 2: Гемоторакс / Глубокое кровотечение
             { id = "desc_hemo", type = "desc", text = "ui_mcm_cu_injuries_desc_hemo"},
             { id = "hemothorax_chance", type = "track", val = 2, min = 0, max = 100, step = 1, def = defaults.hemothorax_chance },
+            { id = "hemothorax_min_hp", type = "track", val = 2, min = 5, max = 90, step = 1, def = defaults.hemothorax_min_hp },
 
             { id = "line2", type = "line" },
 

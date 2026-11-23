@@ -77,6 +77,12 @@
 	<string id="ui_mcm_cu_injuries_hemothorax_chance_decs">
         <text>Шанс возникновения гемоторокса при ранении груди(тяжелое кровотечение которое лечится не всеми медикоментами).</text>
     </string>
+	<string id="ui_mcm_cu_injuries_hemothorax_min_hp">
+		<text>Порог здоровья торса для появления гемоторакса (%)</text>
+	</string>
+	<string id="ui_mcm_cu_injuries_hemothorax_min_hp_decs">
+        <text>При сколько %хп в груди, появляется шанс на появления гемоторокса.</text>
+    </string>
 
 
     <!-- Чекбокс дебага -->
@@ -98,19 +104,6 @@
     </string>
 	<string id="st_cu_debug_pain_low">
         <text>[CU Injures] Debug: Легкое получение урона</text>
-    </string>
-
-	<string id="st_cu_debug_torso_crit">
-        <text>[CU Injures] BHS Debug: Критическое ранение торса</text>
-    </string>
-	<string id="st_cu_debug_leg_damage">
-        <text>[CU Injures] BHS Debug: Ранение в ногу</text>
-    </string>
-	<string id="st_cu_debug_arm_damage">
-        <text>[CU Injures] BHS Debug: Ранение в руку</text>
-    </string>
-	<string id="st_cu_debug_nil_damage">
-        <text>[CU Injures] BHS Debug: Нулевое ранение в конечности</text>
     </string>
 
 </string_table>

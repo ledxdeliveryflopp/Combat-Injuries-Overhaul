@@ -9,20 +9,28 @@ function SaveState(m_data)
         m_data.cu_pain_block_remaining = nil
     end
 
-    -- 2. Гемоторакс (сохраняем остаток миллисекунд)
+    -- 2. Гемоторакс
     if cu_const.HemothoraxUntil and cu_const.HemothoraxUntil > now then
         m_data.cu_hemothorax_remaining = cu_const.HemothoraxUntil - now
     else
         m_data.cu_hemothorax_remaining = nil
     end
 
-    -- 3. Болевой шок от удара (остаток миллисекунд + уровень боли)
+    -- 3. Болевой шок от удара
     if cu_const.HitPainUntil and cu_const.HitPainUntil > now then
         m_data.cu_hit_pain_remaining = cu_const.HitPainUntil - now
         m_data.cu_hit_pain_level     = cu_const.HitPainLevel
     else
         m_data.cu_hit_pain_remaining = nil
         m_data.cu_hit_pain_level     = nil
+    end
+
+    -- 4. Уровень усталости (сохраняем только если > 0)
+    local fat = cu_fatigue and cu_fatigue.GetFatigueNumeric and cu_fatigue.GetFatigueNumeric() or 0
+    if fat > 0 then
+        m_data.cu_fatigue_level = fat
+    else
+        m_data.cu_fatigue_level = nil
     end
 end
 
@@ -52,5 +60,10 @@ function LoadState(m_data)
     else
         cu_const.HitPainUntil = 0
         cu_const.HitPainLevel = "low"
+    end
+
+    -- 4. Восстанавливаем уровень усталости
+    if cu_fatigue and cu_fatigue.SetFatigueNumeric then
+        cu_fatigue.SetFatigueNumeric(m_data.cu_fatigue_level or 0)
     end
 end

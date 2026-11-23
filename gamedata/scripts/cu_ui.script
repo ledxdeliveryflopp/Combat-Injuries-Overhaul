@@ -31,6 +31,22 @@ local function add_pain_shock_indicator()
 end
 
 
+local function add_fatigue_indicator()
+    if actor_status and actor_status.indicators then
+        actor_status.indicators["cu_fatigue"] = {
+            index = 23,
+            typ = "booster",
+            functor = {"cu_fatigue", "FatigueLevel"}, -- Без третьего аргумента true
+            icon = "ui\\fatigue_low.dds",
+            background = "ui\\alticons\\bg3.dds",
+            anim_icon = false,
+            anim_bk = false,
+            anim_period = 0 -- Обязательно 0, чтобы иконка не мигала
+        }
+    end
+end
+
+
 local function add_hemothorax_indicator()
     if actor_status and actor_status.indicators then
         actor_status.indicators["cu_hemothorax"] = {
@@ -57,6 +73,10 @@ local function update_game_indicators()
                 local lvl = cu_const.CurrentPainLevel or "low"
                 actor_status.indicators["cu_pain_shock"].icon = cu_const.PainIcons[lvl] or "ui\\pain_low.dds"
             end
+            if actor_status.indicators["cu_fatigue"] then
+                local lvl = cu_fatigue.GetFatigueLiteralLevel()
+                actor_status.indicators["cu_fatigue"].icon = cu_const.FatigueIcons[lvl] or "ui\\fatigue_low.dds"
+            end
 
             orig_indicators_update(self, force)
 
@@ -77,16 +97,16 @@ local function update_game_indicators()
                      local time_wnd = self.slot[slot_idx] and self.slot[slot_idx].xcvb_time
 
                      if time_wnd then
-                         if name == "cu_pain_killer" and block_sec and block_sec > 0 then
-                             time_wnd:Show(true)
-                             time_wnd:SetText(tostring(block_sec))
-                         elseif name == "cu_pain_shock" and pain_sec and pain_sec > 0 then
-                             time_wnd:Show(true)
-                             time_wnd:SetText(tostring(pain_sec))
-                         elseif name == "cu_hemothorax" and bleed_sec and bleed_sec > 0 then
-                             time_wnd:Show(true)
-                             time_wnd:SetText(tostring(bleed_sec))
-                         end
+                        if name == "cu_pain_killer" and block_sec and block_sec > 0 then
+                            time_wnd:Show(true)
+                            time_wnd:SetText(tostring(block_sec))
+                        elseif name == "cu_pain_shock" and pain_sec and pain_sec > 0 then
+                            time_wnd:Show(true)
+                            time_wnd:SetText(tostring(pain_sec))
+                        elseif name == "cu_hemothorax" and bleed_sec and bleed_sec > 0 then
+                            time_wnd:Show(true)
+                            time_wnd:SetText(tostring(bleed_sec))
+                        end
                      end
                  end
              end
@@ -100,5 +120,6 @@ function RegisterIndicators()
     add_pain_killer_indicator()
     add_pain_shock_indicator()
     add_hemothorax_indicator()
+    add_fatigue_indicator()
     update_game_indicators()
 end

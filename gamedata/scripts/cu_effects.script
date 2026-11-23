@@ -3,6 +3,7 @@
 local knockout_timer_start = nil
 local is_knocked_out       = false
 local active_ko_snd        = nil
+local pp_effect_id = 8844
 
 local BLACKOUT_PP_ID    = 8850
 local BLACKOUT_DURATION = 8.0  -- Общая длительность темноты (сек)
@@ -25,7 +26,7 @@ local current_visual_base = 0.45
 function StopPainVisualEffect()
     if cu_const.PP_Active then
         cu_const.PP_Active = false
-        level.remove_pp_effector(cu_const.PP_EFFECT_ID)
+        level.remove_pp_effector(pp_effect_id)
     end
 end
 
@@ -36,7 +37,7 @@ function StartPainVisualEffect(pain_level)
 
     if not cu_const.PP_Active then
         cu_const.PP_Active = true
-        level.add_pp_effector("alcohol.ppe", cu_const.PP_EFFECT_ID, true)
+        level.add_pp_effector("alcohol.ppe", pp_effect_id, true)
     end
 end
 
@@ -57,7 +58,7 @@ function UpdatePainVisualEffect(current_game_time)
 
                 -- Плавно гасим экран от текущей силы боли (current_visual_base) до 0
                 if cu_const.PP_Active then
-                    level.set_pp_effector_factor(cu_const.PP_EFFECT_ID, current_visual_base * remaining)
+                    level.set_pp_effector_factor(pp_effect_id, current_visual_base * remaining)
                 end
             end
         else
@@ -68,7 +69,7 @@ function UpdatePainVisualEffect(current_game_time)
         -- Пульсация масштабируется пропорционально силе боли (±20% от базового уровня)
         local amplitude = current_visual_base * 0.2
         local pulse = current_visual_base + math.sin(current_game_time * 0.004) * amplitude
-        level.set_pp_effector_factor(cu_const.PP_EFFECT_ID, pulse)
+        level.set_pp_effector_factor(pp_effect_id, pulse)
     end
 end
 
@@ -263,11 +264,16 @@ function TriggerKnockout()
     end)
 end
 
+HemothoraxCheckCooldown = 0
+
+
 function RandomizeHemothorax(current_game_time)
-    printf("[CU_Injuries] Start hemothorax")
-    cu_const.HemothoraxUntil = math.max(cu_const.HemothoraxUntil or 0, current_game_time + 25000)
-    local hemothorax_chance = cu_injuries_mcm.get_config("hemothorax_chance")
+    -- Ставим задержку 25 секунд до следующей попытки бросить кубик (чтобы не спамить каждый кадр)
+    HemothoraxCheckCooldown = current_game_time + 25000
+
+    local hemothorax_chance = cu_injuries_mcm.get_config("hemothorax_chance") or 30
     if math.random(1, 100) <= hemothorax_chance then
+        printf("[CU_Injuries] Start hemothorax!")
         cu_const.HemothoraxUntil = math.max(cu_const.HemothoraxUntil or 0, current_game_time + 180000) -- 3 минуты
         news_manager.send_tip(db.actor, game.translate_string("st_cu_hemothorax_start"), nil, nil, 5000)
     end
@@ -278,12 +284,10 @@ function CheckHemothoraxStatus(current_game_time)
         local cond = db.actor:cast_Actor():conditions()
         local cur_bleed = db.actor.bleeding or 0
 
-        -- Поддерживаем строго среднее кровотечение (0.25 - 0.45), не доводя до критического красного
         if cur_bleed < 0.25 and cond and cond.AddWound then
             cond:AddWound(0.18, hit.wound, 15)
         end
 
-        -- Ограничение максимальной выносливости при кровопотере
         local time_left_ratio = (cu_const.HemothoraxUntil - current_game_time) / 180000 -- от 1.0 в начале до 0.0 в конце
         local max_stamina_limit = 0.25 + (0.35 * time_left_ratio)  
         if db.actor.power > max_stamina_limit then

@@ -1,9 +1,7 @@
 BlockSoundUntil = 0
-PP_EFFECT_ID = 8844
 ActivePainSnd = nil
 IsFadingOut = false
 FadeStartTime = 0
-FADE_DURATION_MS = 12000
 PP_Active = false
 
 HitPainUntil = 0
@@ -23,6 +21,12 @@ PainIcons = {
     medium   = "ui\\pain_medium.dds",
     heavy    = "ui\\pain_hard.dds",
     critical = "ui\\pain_critical.dds",
+}
+FatigueIcons = {
+    low      = "ui\\fatigue_low.dds",
+    medium   = "ui\\fatigue_medium.dds",
+    heavy    = "ui\\fatigue_hard.dds",
+    critical = "ui\\fatigue_critical.dds",
 }
 
 

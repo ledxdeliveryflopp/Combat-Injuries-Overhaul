@@ -1,10 +1,14 @@
 local function register_callbacks()
     RegisterScriptCallback("actor_on_update", cu_pain.OnLowHpUpdate)
+    RegisterScriptCallback("actor_on_update", cu_fatigue.TrackStamina)
+
     RegisterScriptCallback("actor_on_item_use", cu_meds.OnMedItemUse)
     RegisterScriptCallback("actor_on_before_death", cu_effects.DeathPainEffect)
-    RegisterScriptCallback("on_key_press", cu_debug.DebugKeys)
+
     RegisterScriptCallback("save_state", cu_save.SaveState)
     RegisterScriptCallback("load_state", cu_save.LoadState)
+
+    RegisterScriptCallback("on_key_press", cu_debug.DebugKeys)
 end
 
 function on_game_start()

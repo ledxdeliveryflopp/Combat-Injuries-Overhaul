@@ -1,0 +1,81 @@
+local fatigue_level     = 0
+local next_fatigue_tick = 0
+
+-- Возвращает true/false для индикатора в HUD
+function FatigueLevel()
+    if fatigue_level and fatigue_level > 0 then
+        return fatigue_level -- Возвращает число (1, 2, 3 или 4), чтобы actor_status не падал
+    end
+    return nil -- Скрывает иконку, когда усталости нет
+end
+
+
+function GetFatigueNumeric()
+    return fatigue_level
+end
+
+
+function SetFatigueNumeric(val)
+    fatigue_level = math.max(0, math.min(4, val or 0))
+end
+
+-- Возвращает текущее числовое значение (0..4) для смены иконок или сохранения
+function GetFatigueLiteralLevel()
+    if fatigue_level == 1 then
+        return "low"
+    elseif fatigue_level == 2 then
+        return "medium"
+    elseif fatigue_level == 3 then
+        return "heavy"
+    elseif fatigue_level == 4 then
+        return "critical"
+    else
+        return "low"
+    end
+end
+
+local function increase_fatigue_level()
+    if fatigue_level < 4 then
+        fatigue_level = fatigue_level + 1
+        printf("[CU_Injuries] Increase fatigue level to: %s", tostring(fatigue_level))
+    end
+end
+
+local function decrease_fatigue_level()
+    if fatigue_level > 0 then
+        fatigue_level = fatigue_level - 1
+        printf("[CU_Injuries] Decrease fatigue level to: %s", tostring(fatigue_level))
+    end
+end
+
+function TrackStamina()
+    if not db.actor or not db.actor:alive() then
+        fatigue_level = 0
+        return
+    end
+
+    local cur_stamina = db.actor.power
+
+    -- 1. Урезаем максимальный потолок стамины каждый кадр (-20% за каждый уровень усталости)
+    -- Уровень 1 -> 0.80 | Уровень 2 -> 0.60 | Уровень 3 -> 0.40 | Уровень 4 -> 0.20
+    local max_stamina_cap = 1.0 - (fatigue_level * 0.20)
+    if fatigue_level > 0 and cur_stamina > max_stamina_cap then
+        db.actor.power = max_stamina_cap
+        cur_stamina = max_stamina_cap
+    end
+
+    -- 2. Раз в 15–20 секунд пересчитываем накопление или спад усталости
+    local now = time_global()
+    if now < next_fatigue_tick then return end
+
+    -- Порог отдыха адаптируется под текущий потолок (на 5% ниже доступного максимума)
+    local rest_threshold = max_stamina_cap - 0.05
+
+    if cur_stamina <= 0.15 and fatigue_level < 4 then
+        increase_fatigue_level()
+        next_fatigue_tick = now + 15000 -- +1 уровень каждые 15 сек истощения
+    elseif cur_stamina >= rest_threshold and fatigue_level > 0 then
+        decrease_fatigue_level()
+        next_fatigue_tick = now + 20000 -- -1 уровень каждые 20 сек отдыха
+    end
+end
