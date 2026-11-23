@@ -15,13 +15,13 @@
     </string>
 	
 	<string id="st_cu_hemothorax_start">
-		<text>Гемоторакс! Используйте барвинок или комплект выживания.</text>
+		<text>Гемоторакс!.</text>
 	</string>
 	<string id="st_cu_hemothorax_stop">
 		<text>Гемоторакс остановлен.</text>
 	</string>
 	<string id="st_cu_hemothorax_stop_desc">
-        <text>Останавливает гемоторакс</text>
+        <text>Антикоагулянт</text>
     </string>
 
         <!-- Заголовок меню в списке модов MCM -->
