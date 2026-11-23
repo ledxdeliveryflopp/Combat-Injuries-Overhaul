@@ -1,0 +1,27 @@
+function DebugKeys(key)
+    if not cu_injuries_mcm.get_config("debug_keys") then return end
+    if not db.actor or not db.actor:alive() then return end
+
+    if key == DIK_keys.DIK_N then
+        db.actor:set_health_ex(0.09)
+
+    elseif key == DIK_keys.DIK_M then
+        db.actor:set_health_ex(1.0)
+    elseif key == DIK_keys.DIK_K then
+        db.actor:set_health_ex(0.13)
+    elseif key == DIK_keys.DIK_B then
+    -- Наносим кровотечение (тип хита: wound, сила раны: 0.45 -> даёт среднее кровотечение)
+        local h = hit()
+        h.type = hit.wound
+        h.power = 0.01 -- Минимальный урон по HP, чтобы не убить при тесте
+        h.impulse = 0
+        h.direction = vector():set(0, 0, 1)
+        h.draftsman = db.actor
+        db.actor:hit(h)
+
+        local cond = db.actor:cast_Actor():conditions()
+        if cond and cond.AddWound then
+            cond:AddWound(0.45, hit.wound, 15) -- 0.45 силы, кость №15 (торс)
+        end
+    end
+end

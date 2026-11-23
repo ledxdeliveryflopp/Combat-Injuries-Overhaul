@@ -1,0 +1,16 @@
+BlockSoundUntil = 0
+PP_EFFECT_ID = 8844
+ActivePainSnd = nil
+IsFadingOut = false
+FadeStartTime = 0
+FADE_DURATION_MS = 12000
+PP_Active = false
+
+LOW_HP_THRESHOLD = 0.15     -- 0.10 = 10% здоровья
+
+AgonyPainSound = sound_object("cu_injuries\\agony")
+KnockoutSounds = {
+    "cu_injuries\\knockout_1",
+    "cu_injuries\\knockout_2",
+    "cu_injuries\\knockout_3",
+}

@@ -1,0 +1,21 @@
+
+function SaveState(m_data)
+    if not m_data then return end
+
+    local now = time_global()
+    if cu_const.BlockSoundUntil and cu_const.BlockSoundUntil > now then
+        m_data.cu_pain_block_remaining = cu_const.BlockSoundUntil - now
+    else
+        m_data.cu_pain_block_remaining = nil
+    end
+end
+
+function LoadState(m_data)
+    if not m_data then return end
+
+    if m_data.cu_pain_block_remaining and m_data.cu_pain_block_remaining > 0 then
+        cu_const.BlockSoundUntil = time_global() + m_data.cu_pain_block_remaining
+    else
+        cu_const.BlockSoundUntil = 0
+    end
+end

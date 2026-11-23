@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+    <string id="st_cu_injuries_loaded">
+        <text>CU_Injuries Loaded.</text>
+    </string>
+    <string id="st_cu_pain_block_desc">
+        <text>Painkiller</text>
+    </string>
+    <string id="st_cu_sec">
+        <text>sec.</text>
+    </string>
+	<?xml version="1.0" encoding="windows-1251"?>
+
+    <string id="st_cu_injuries_loaded">
+        <text>CU_Injuries Loaded.</text>
+    </string>
+    <string id="st_cu_pain_block_desc">
+        <text>Painkiller</text>
+    </string>
+    <string id="st_cu_sec">
+        <text>sec.</text>
+    </string>
+
+        <!-- Заголовок меню в списке модов MCM -->
+    <string id="ui_mcm_menu_cu_injuries">
+        <text>CU Injuries (Система ранений)</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_title">
+        <text>Настройки системы ранений CU Injuries</text>
+    </string>
+
+    <!-- Ползунки порогов -->
+    <string id="ui_mcm_cu_injuries_hp_threshold_mid">
+        <text>Минимальный порог тяжелого ранения (% HP)</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_hp_threshold_mid_desc">
+        <text>Процент здоровья, при котором начинается лёгкое размытие и тихий звук боли.</text>
+    </string>
+
+    <string id="ui_mcm_cu_injuries_hp_threshold_crit">
+        <text>Порог критического ранения (% HP)</text>
+    </string>
+   <string id="ui_mcm_cu_injuries_hp_threshold_crit_desc">
+        <text>Процент здоровья, при котором звук и визуальный эффект достигают максимума.</text>
+    </string>
+	
+	<string id="ui_mcm_cu_injuries_knockout_timeout">
+        <text>Время до потери сознания (сек.)</text>
+    </string>
+	   <string id="ui_mcm_cu_injuries_knockout_timeout_desc">
+        <text>Время до потери сознания от крит ранения.</text>
+    </string>
+
+    <string id="ui_mcm_cu_injuries_fade_duration">
+        <text>Длительность затухания (сек.)</text>
+    </string>
+
+    <!-- Ползунки лекарств -->
+    <string id="ui_mcm_cu_injuries_morphine_cd">
+        <text>Действие морфина (сек.)</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_ibuprofen_cd">
+        <text>Действие ибупрофена (сек.)</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_analgetic_cd">
+        <text>Действие анальгина (сек.)</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_stimpack_cd">
+        <text>Действие стимпаков (сек.)</text>
+    </string>    
+    <!-- Чекбокс дебага -->
+    <string id="ui_mcm_cu_injuries_debug_keys">
+        <text>Включить тестовые клавиши (N, M, K)</text>
+    </string>
+
+</string_table>

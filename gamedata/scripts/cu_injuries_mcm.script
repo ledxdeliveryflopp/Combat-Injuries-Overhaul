@@ -1,0 +1,44 @@
+-- Файл: gamedata\scripts\cu_injuries_mcm.script
+
+-- Значения по умолчанию (используются, если игрок ещё не крутил ползунки)
+local defaults = {
+    hp_threshold_mid  = 15,  -- Порог слабой агонии (%)
+    hp_threshold_crit = 10,  -- Порог сильной агонии (%)
+    fade_duration     = 12,  -- Длительность затухания (сек)
+    knockout_timeout = 60,
+    debug_keys        = false, -- Включить тестовые клавиши (N, M, K)
+}
+
+-- Удобная функция для чтения настроек из других ваших скриптов
+function get_config(key)
+    if ui_mcm then
+        return ui_mcm.get("cu_injuries/" .. key)
+    end
+    return defaults[key]
+end
+
+-- Построение меню в настройках MCM
+function on_mcm_load()
+    local op = {
+        id = "cu_injuries",
+        sh = true,
+        gr = {
+            -- Заголовок страницы
+            { id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_cu_injuries_title", size = {512, 50}, spacing = 20 },
+
+            -- Пороги здоровья и затухание
+            { id = "hp_threshold_mid",  type = "track", val = 2, min = 5,  max = 50,  step = 1, def = defaults.hp_threshold_mid },
+            { id = "hp_threshold_crit", type = "track", val = 2, min = 1,  max = 30,  step = 1, def = defaults.hp_threshold_crit },
+            { id = "knockout_timeout", type = "track", val = 2, min = 25,  max = 800,  step = 1, def = defaults.knockout_timeout },
+            { id = "fade_duration",     type = "track", val = 2, min = 1,  max = 30,  step = 1, def = defaults.fade_duration },
+
+            { id = "line1", type = "line" },
+
+            { id = "line2", type = "line" },
+
+            -- Чекбокс для отладочных клавиш
+            { id = "debug_keys", type = "check", val = 1, def = defaults.debug_keys },
+        }
+    }
+    return op
+end

@@ -1,0 +1,84 @@
+
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_update", cu_pain.OnLowHpUpdate)
+    RegisterScriptCallback("actor_on_item_use", cu_meds.OnMedItemUse)
+    RegisterScriptCallback("actor_on_before_death", cu_effects.DeathPainEffect)
+    RegisterScriptCallback("on_key_press", cu_debug.DebugKeys)
+    RegisterScriptCallback("save_state", cu_save.SaveState)
+    RegisterScriptCallback("load_state", cu_save.LoadState)
+
+    if actor_status and actor_status.indicators then
+        actor_status.indicators["cu_pain_block"] = {
+            index = 20,
+            typ = "booster",
+            functor = {"cu_meds", "GetPainBlockStatus", true},
+            icon = "ui\\pain_killer.dds",
+            background = "ui\\alticons\\bg2.dds",
+            anim_icon = false,
+            anim_bk = false,
+            anim_period = 5
+        }
+    end
+
+    if actor_status and actor_status.UIIndicators and actor_status.UIIndicators.Update then
+        local orig_indicators_update = actor_status.UIIndicators.Update
+
+        function actor_status.UIIndicators:Update(force)
+            orig_indicators_update(self, force)
+
+            local sec_left = cu_meds.GetPainBlockStatus(true)
+            if sec_left and sec_left > 0 and self.slot then
+                local slot_idx = 0
+                local sort_func = actor_status.func_index or function(t, a, b) return t[a].index < t[b].index end
+                for name, t in spairs(actor_status.indicators, sort_func) do
+                    local val = t.functor and execute_func(unpack(t.functor))
+                    local pass = (t.typ == "state" and val and val <= 4 and val >= 1) or (t.typ == "booster" and val and true or false)
+                    if pass then
+                        slot_idx = slot_idx + 1
+                        if name == "cu_pain_block" and self.slot[slot_idx] and self.slot[slot_idx].xcvb_time then
+                            self.slot[slot_idx].xcvb_time:Show(true)
+                            self.slot[slot_idx].xcvb_time:SetText(tostring(math.ceil(sec_left)))
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+-- В файле zzz_cu_injuries.script (таблицу med_pain_block в cu_meds.script сделайте без local, чтобы её было видно как cu_meds.med_pain_block)
+local orig_build_desc_header = ui_item.build_desc_header
+
+function ui_item.build_desc_header(obj, sec, str)
+    str = orig_build_desc_header(obj, sec, str)
+    
+    local item_sec = obj and obj:section() or sec
+    if not item_sec then return str end
+
+    local cooldown_ms = cu_meds.med_pain_block[item_sec]
+    if cooldown_ms then
+        local title = game.translate_string("st_cu_pain_block_desc")
+        
+        -- Удваиваем %% для string.gsub, чтобы они не съелись при подстановке
+        local clr_dot  = "%%c[255,80,190,255]"
+        local clr_text = "%%c[255,200,200,200]"
+        local clr_def  = "%%c[default]"
+
+        local custom_line = "\\n" .. clr_dot .. " \149 " .. clr_text .. title .. clr_def .. "\\n"
+        
+
+        -- Ищем заголовок вместе с двоеточием ("ОСОБЕННОСТИ:")
+        local header = game.translate_string("st_itm_desc_properties") .. ":"
+        if string.find(str, header, 1, true) then
+            str = string.gsub(str, header, header .. custom_line, 1)
+        else
+            str = str .. "\\n\\n" .. clr_dot .. " \149 " .. clr_text .. title .. clr_def
+        end
+    end
+
+    return str
+end
+

@@ -1,0 +1,57 @@
+local IBUPROFEN_COOLDOWN_MS  = 75000    -- Пауза после ибупрофена (75 сек)
+local MORPHINE_COOLDOWN_MS = 300000  -- Пауза после морофия (300 сек)
+
+med_pain_block = {
+    ["morphine"]          = MORPHINE_COOLDOWN_MS,
+    ["akvatab"]         = IBUPROFEN_COOLDOWN_MS,
+}
+
+function OnMedItemUse(item)
+    if not item then return end
+    local sec = item:section()
+
+    local cooldown = med_pain_block[sec]
+    
+    if cooldown then
+        local now = time_global()
+        cu_const.BlockSoundUntil = now + cooldown
+
+        if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() and not cu_const.IsFadingOut then
+            cu_const.IsFadingOut = true
+            cu_const.FadeStartTime = now
+        end
+    end
+end
+
+
+-- Сохраняем оригинальную функцию генерации описания из GAMMA
+-- local orig_build_desc_header = ui_item.build_desc_header
+
+-- function ui_item.build_desc_header(obj, sec, str)
+--     str = orig_build_desc_header(obj, sec, str)
+    
+--     local item_sec = obj and obj:section() or sec
+--     if not item_sec then return str end
+
+--     local cooldown_ms = med_pain_block[item_sec]
+--     if cooldown_ms then
+--         local title = game.translate_string("st_cu_pain_block_desc")
+        
+--         local clr_dot  = "%c[255,80,190,255]"   -- Голубой цвет точки
+--         local clr_text = "%c[255,200,200,200]"  -- Светло-серый цвет текста
+--         local clr_def  = "%c[default]"          -- Сброс цвета
+
+--         -- Ставим перенос строки и в начале, и в конце (с невидимым пробелом после \n)
+--         str = str .. "\\n" .. clr_dot .. " \149 " .. clr_text .. title .. clr_def .. "\\n "
+--     end
+
+--     return str
+-- end
+
+function GetPainBlockStatus()
+    local now = time_global()
+    if cu_const.BlockSoundUntil and cu_const.BlockSoundUntil > now then
+        return math.ceil((cu_const.BlockSoundUntil - now) / 1000)
+    end
+    return 0
+end

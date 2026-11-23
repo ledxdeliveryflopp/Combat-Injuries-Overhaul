@@ -1,0 +1,236 @@
+
+function StartPainVisualEffect()
+    if not cu_const.PP_Active then
+        cu_const.PP_Active = true
+        -- alcohol.ppe дает плавное размытие и двоение по краям экрана
+        level.add_pp_effector("alcohol.ppe", cu_const.PP_EFFECT_ID, true)
+    end
+end
+
+-- Выключение визуального эффекта
+function StopPainVisualEffect()
+    if cu_const.PP_Active then
+        cu_const.PP_Active = false
+        level.remove_pp_effector(cu_const.PP_EFFECT_ID)
+    end
+end
+
+
+function DeathPainEffect()
+    if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() then
+        cu_const.ActivePainSnd:stop()
+    end
+    cu_const.IsFadingOut = false
+    StopPainVisualEffect()
+end
+
+local knockout_timer_start = nil
+local is_knocked_out = false
+
+-- Настройки потери сознания (позже можно вынести в MCM)
+local KNOCKOUT_DELAY_MS = 25000 -- Через сколько миллисекунд агонии персонаж отключится (25 сек)
+local SLEEP_HOURS       = 2     -- На сколько игровых часов персонаж теряет сознание
+
+-- Вызывается из OnLowHpUpdate, когда идёт критическая агония
+function UpdateKnockoutTimer(is_critical_agony)
+    if not db.actor or not db.actor:alive() or is_knocked_out then return end
+
+    -- Если игрок не в критической агонии (вылечился или принял обезболивающее) — сбрасываем таймер
+    if not is_critical_agony then
+        knockout_timer_start = nil
+        return
+    end
+
+    local now = time_global()
+    if not knockout_timer_start then
+        knockout_timer_start = now
+        return
+    end
+    local knockout_delay = (cu_injuries_mcm.get_config("knockout_timeout") or 60) * 1000
+    if (now - knockout_timer_start) >= knockout_delay then
+        knockout_timer_start = nil
+        TriggerKnockout()
+    end
+end
+
+
+local active_ko_snd = nil
+local BLACKOUT_PP_ID    = 8850
+local BLACKOUT_DURATION = 8.0
+local FADE_IN_DURATION  = 5.0  -- За сколько секунд экран плавно потемнеет до 100%
+local SLEEP_HOURS       = 2
+
+function IsKnockedOut()
+    return is_knocked_out == true
+end
+
+local function ForceStopAgony()
+    if cu_const.ActivePainSnd then
+        if cu_const.ActivePainSnd:playing() then
+            cu_const.ActivePainSnd:stop()
+        end
+        cu_const.ActivePainSnd = nil
+    end
+    cu_const.IsFadingOut = false
+    StopPainVisualEffect()
+end
+
+
+function TriggerKnockout()
+    if is_knocked_out or not db.actor or not db.actor:alive() then return end
+    is_knocked_out = true
+
+    -- 1. Полностью прекращаем звук и визуал агонии
+    ForceStopAgony()
+
+    -- 2. Блокируем управление, прячем оружие, запускаем падение камеры и плавное потемнение
+    level.disable_input()
+    db.actor:hide_weapon()
+    level.add_cam_effector("camera_effects\\surge_02.anm", 8846, false, "")
+    level.add_pp_effector("surge_fade.ppe", 8847, false)
+    
+    -- Запускаем чёрный экран с нулевой непрозрачностью (0.0)
+    level.add_pp_effector("black.ppe", BLACKOUT_PP_ID, true)
+    level.set_pp_effector_factor(BLACKOUT_PP_ID, 0.0)
+
+    -- Запускаем случайный звук потери сознания
+    local random_path = cu_const.KnockoutSounds[math.random(#cu_const.KnockoutSounds)]
+    active_ko_snd = sound_object(random_path)
+    if active_ko_snd then
+        active_ko_snd:play(db.actor, 0, sound_object.s2d)
+        active_ko_snd.volume = 1.5
+    end
+
+    -- 3. Плавное нарастание черноты экрана с 0.0 до 1.0 за FADE_IN_DURATION секунд
+    local fade_in_start = time_global()
+    local fade_in_ms    = (FADE_IN_DURATION or 3.0) * 1000
+
+    CreateTimeEvent("cu_injuries", "knockout_fade_in", 0.02, function()
+        if not is_knocked_out or not db.actor or not db.actor:alive() then
+            return true
+        end
+
+        local progress = (time_global() - fade_in_start) / fade_in_ms
+        if progress >= 1.0 then
+            level.set_pp_effector_factor(BLACKOUT_PP_ID, 1.0)
+            return true
+        else
+            level.set_pp_effector_factor(BLACKOUT_PP_ID, progress)
+        end
+
+        return false
+    end)
+
+    -- 4. Через BLACKOUT_DURATION секунд — проверяем кровотечение, проматываем время и убираем чёрный экран
+        CreateTimeEvent("cu_injuries", "knockout_sleep", BLACKOUT_DURATION or 8.0, function()
+        RemoveTimeEvent("cu_injuries", "knockout_fade_in")
+
+        if not db.actor or not db.actor:alive() then
+            level.remove_pp_effector(BLACKOUT_PP_ID)
+            level.remove_pp_effector(8847)
+            if active_ko_snd and active_ko_snd:playing() then active_ko_snd:stop() end
+            level.enable_input()
+            is_knocked_out = false
+            return true
+        end
+
+        -- Проверка среднего кровотечения
+        local bleeding_level = db.actor.bleeding or 0
+        local had_medium_bleed = (bleeding_level >= 0.25)
+
+        if had_medium_bleed and math.random(1, 100) <= 25 then
+            level.remove_pp_effector(BLACKOUT_PP_ID)
+            level.remove_pp_effector(8847)
+            if active_ko_snd and active_ko_snd:playing() then
+                active_ko_snd:stop()
+                active_ko_snd = nil
+            end
+            level.enable_input()
+            is_knocked_out = false
+            db.actor:kill(db.actor)
+            return true
+        end
+
+        -- Проматываем время и выставляем HP после пробуждения
+        level.change_game_time(0, SLEEP_HOURS or 2, 0)
+        surge_manager.get_surge_manager().time_forwarded = true
+
+        if had_medium_bleed then
+            db.actor:set_health_ex(0.05)
+        elseif db.actor.health < 0.18 then
+            db.actor:set_health_ex(0.18)
+        end
+
+        -- Сначала укладываем камеру на землю в начале анимации подъёма, ПОКА экран ещё полностью чёрный
+        level.remove_pp_effector(8847)
+        level.add_cam_effector("camera_effects\\prison_1.anm", 8848, false, "")
+        level.add_pp_effector("yantar_underground_psi.ppe", 8849, false)
+        level.set_pp_effector_factor(8849, 0.5)
+
+        -- Плавное рассеивание чёрного экрана (1.0 -> 0.0) за 2.2 секунды
+        local fade_out_start = time_global()
+        local fade_out_ms    = 2200
+
+        CreateTimeEvent("cu_injuries", "knockout_fade_out", 0.02, function()
+            local progress = (time_global() - fade_out_start) / fade_out_ms
+            if progress >= 1.0 then
+                level.remove_pp_effector(BLACKOUT_PP_ID)
+                return true
+            else
+                level.set_pp_effector_factor(BLACKOUT_PP_ID, 1.0 - progress)
+            end
+            return false
+        end)
+
+        -- Плавное затухание звука ПОСЛЕ открытия глаз (2.5 сек)
+        local fade_start = time_global()
+        local fade_duration = 2500
+
+        CreateTimeEvent("cu_injuries", "knockout_snd_fade", 0.05, function()
+            if not active_ko_snd or not active_ko_snd:playing() then
+                active_ko_snd = nil
+                return true
+            end
+
+            local progress = (time_global() - fade_start) / fade_duration
+            if progress >= 1.0 then
+                active_ko_snd:stop()
+                active_ko_snd = nil
+                return true
+            else
+                active_ko_snd.volume = 1.0 - progress
+            end
+
+            return false
+        end)
+
+        -- Возвращаем управление игроку через 2.2 секунды (когда глаза полностью открылись и персонаж встал)
+        CreateTimeEvent("cu_injuries", "knockout_wake", 2.2, function()
+            level.enable_input()
+            db.actor:restore_weapon()
+            is_knocked_out = false
+            return true
+        end)
+
+        return true
+    end)
+end
+
+-- Обязательный сброс при смерти
+function ResetKnockout()
+    knockout_timer_start = nil
+    if active_ko_snd and active_ko_snd:playing() then
+        active_ko_snd:stop()
+        active_ko_snd = nil
+    end
+    level.remove_pp_effector(BLACKOUT_PP_ID)
+    level.remove_pp_effector(8847)
+    if is_knocked_out then
+        level.enable_input()
+        is_knocked_out = false
+    end
+    RemoveTimeEvent("cu_injuries", "knockout_fade_in")
+    RemoveTimeEvent("cu_injuries", "knockout_sleep")
+    RemoveTimeEvent("cu_injuries", "knockout_wake")
+    RemoveTimeEvent("cu_injuries", "knockout_snd_fade")
+end

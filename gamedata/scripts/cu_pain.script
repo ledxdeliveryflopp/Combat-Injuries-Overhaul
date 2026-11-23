@@ -1,0 +1,87 @@
+
+local function stop_low_hp_pain()
+    if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() and not cu_const.IsFadingOut then
+        cu_const.IsFadingOut = true
+        cu_const.FadeStartTime = time_global()
+    end
+end
+
+local function start_low_hp_pain(pain_modifier)
+    -- 1. Запускаем звук, только если он ещё не играет (или затухал)
+    if not cu_const.ActivePainSnd or not cu_const.ActivePainSnd:playing() or cu_const.IsFadingOut then
+        if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() then
+            cu_const.ActivePainSnd:stop()
+        end
+
+        cu_const.IsFadingOut = false
+        cu_const.ActivePainSnd = sound_object("cu_injuries\\agony")
+        if cu_const.ActivePainSnd then
+            cu_const.ActivePainSnd:play(db.actor, 0, sound_object.s2d + sound_object.looped)
+        end
+    end
+
+    -- 2. Обновляем громкость всегда (чтобы при падении с 15% до 10% звук сразу усилился)
+    if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() and not cu_const.IsFadingOut then
+        cu_const.ActivePainSnd.volume = pain_modifier
+    end
+end
+
+function OnLowHpUpdate()
+    if not db.actor or not db.actor:alive() then return end
+    if cu_effects.IsKnockedOut() then return end
+
+    local now = time_global()
+    local hp = db.actor.health
+    local mid_hp  = cu_injuries_mcm.get_config("hp_threshold_mid") / 100
+    local crit_hp = cu_injuries_mcm.get_config("hp_threshold_crit") / 100
+    local fade_ms = cu_injuries_mcm.get_config("fade_duration") * 1000
+    
+    -- 1. Критическая стадия (<= crit_hp)
+    if hp <= crit_hp and now >= cu_const.BlockSoundUntil then
+        start_low_hp_pain(2.0)
+        cu_effects.StartPainVisualEffect()
+        cu_effects.UpdateKnockoutTimer(true) -- Запускаем отсчёт до потери сознания!
+
+    -- 2. Начальная стадия (<= mid_hp)
+    elseif hp <= mid_hp and now >= cu_const.BlockSoundUntil then
+        start_low_hp_pain(1.0)
+        cu_effects.StartPainVisualEffect()
+        cu_effects.UpdateKnockoutTimer(false) -- Сбрасываем таймер обморока
+
+    -- 3. Здоровье выше порога ИЛИ действует обезболивающее
+    else
+        if hp > mid_hp then
+            stop_low_hp_pain()
+        end
+        cu_effects.UpdateKnockoutTimer(false) -- Сбрасываем таймер обморока
+    end
+
+
+    -- 3. Синхронное управление громкостью и силой визуального эффекта
+    if cu_const.IsFadingOut and cu_const.ActivePainSnd then
+        if cu_const.ActivePainSnd:playing() then
+            local progress = (now - cu_const.FadeStartTime) / cu_const.FADE_DURATION_MS
+            if progress >= 1.0 then
+                cu_const.ActivePainSnd:stop()
+                cu_const.IsFadingOut = false
+                cu_effects.StopPainVisualEffect()
+            else
+                local current_intensity = 1.0 - progress
+                cu_const.ActivePainSnd.volume = current_intensity
+                
+                -- Плавно ослабляем эффект экрана синхронно со звуком
+                if cu_const.PP_Active then
+                    level.set_pp_effector_factor(cu_const.PP_EFFECT_ID, current_intensity * 0.7)
+                end
+            end
+        else
+            cu_const.IsFadingOut = false
+            cu_effects.StopPainVisualEffect()
+        end
+    elseif cu_const.PP_Active and not cu_const.IsFadingOut then
+        -- Если агония в самом разгаре (не затухает):
+        -- Делаем легкую пульсацию размытия (от 0.45 до 0.75) в такт тяжелому дыханию/пульсу
+        local pulse = 0.6 + math.sin(now * 0.004) * 0.15
+        level.set_pp_effector_factor(cu_const.PP_EFFECT_ID, pulse)
+    end
+end
