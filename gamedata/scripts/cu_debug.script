@@ -1,3 +1,14 @@
+local function apply_test_hit(power)
+    local h = hit()
+    h.type = hit.strike
+    h.power = power
+    h.impulse = 0
+    h.direction = vector():set(0, 0, 1)
+    h.draftsman = db.actor
+    db.actor:hit(h)
+    printf("[CU_Debug] Test hit applied: %.2f", power)
+end
+
 function DebugKeys(key)
     if not cu_injuries_mcm.get_config("debug_keys") then return end
     if not db.actor or not db.actor:alive() then return end
@@ -23,5 +34,16 @@ function DebugKeys(key)
         if cond and cond.AddWound then
             cond:AddWound(0.45, hit.wound, 15) -- 0.45 силы, кость №15 (торс)
         end
+        elseif key == DIK_keys.DIK_LEFT then
+        apply_test_hit(0.12) -- Low pain (Стрелка ВЛЕВО)
+
+    elseif key == DIK_keys.DIK_DOWN then
+        apply_test_hit(0.22) -- Medium pain (Стрелка ВНИЗ)
+
+    elseif key == DIK_keys.DIK_RIGHT then
+        apply_test_hit(0.35) -- Heavy pain (Стрелка ВПРАВО)
+
+    elseif key == DIK_keys.DIK_UP then
+        apply_test_hit(0.50) -- Critical pain (Стрелка ВВЕРХ)
     end
 end

@@ -1,0 +1,104 @@
+local function add_pain_killer_indicator()
+    if actor_status and actor_status.indicators then
+        actor_status.indicators["cu_pain_killer"] = {
+            index = 20,
+            typ = "booster",
+            functor = {"cu_meds", "GetPainBlockStatus", true},
+            icon = "ui\\pain_killer.dds",
+            background = "ui\\alticons\\bg2.dds",
+            anim_icon = false,
+            anim_bk = false,
+            anim_period = 5
+        }
+    end
+end
+
+
+-- 2. Индикатор болевого шока от получения урона
+local function add_pain_shock_indicator()
+    if actor_status and actor_status.indicators then
+        actor_status.indicators["cu_pain_shock"] = {
+            index = 21,
+            typ = "booster",
+            functor = {"cu_pain", "GetPainTime", true},
+            icon = "ui\\pain_low.dds",
+            background = "ui\\alticons\\bg3.dds",
+            anim_icon = false,
+            anim_bk = false,
+            anim_period = 5
+        }
+    end
+end
+
+
+local function add_hemothorax_indicator()
+    if actor_status and actor_status.indicators then
+        actor_status.indicators["cu_hemothorax"] = {
+            index = 22,
+            typ = "booster",
+            functor = {"cu_pain", "GetHemothoraxTime", true},
+            icon = "ui\\hemothorax.dds", -- Можно заменить на свою иконку .dds
+            background = "ui\\alticons\\bg3.dds",     -- Красная рамка дебаффа
+            anim_icon = false,
+            anim_bk = false,
+            anim_period = 30
+        }
+    end
+end
+
+-- 3. Отрисовка обратного отсчёта секунд для обоих индикаторов
+local function update_game_indicators()
+    if actor_status and actor_status.UIIndicators and actor_status.UIIndicators.Update then
+        local orig_indicators_update = actor_status.UIIndicators.Update
+
+        function actor_status.UIIndicators:Update(force)
+            -- Обновляем путь к текстуре под текущий уровень боли ДО отрисовки слотов
+            if actor_status.indicators["cu_pain_shock"] then
+                local lvl = cu_const.CurrentPainLevel or "low"
+                actor_status.indicators["cu_pain_shock"].icon = cu_const.PainIcons[lvl] or "ui\\pain_low.dds"
+            end
+
+            orig_indicators_update(self, force)
+
+         local block_sec = cu_meds.GetPainBlockStatus()
+         local pain_sec  = cu_pain.GetPainTime()
+         local bleed_sec = cu_pain.GetHemothoraxTime()
+
+         if ((block_sec and block_sec > 0) or (pain_sec and pain_sec > 0) or (bleed_sec and bleed_sec > 0)) and self.slot then
+             local slot_idx = 0
+             local sort_func = actor_status.func_index or function(t, a, b) return t[a].index < t[b].index end
+
+             for name, t in spairs(actor_status.indicators, sort_func) do
+                 local val = t.functor and execute_func(unpack(t.functor))
+                 local pass = (t.typ == "state" and val and val <= 4 and val >= 1) or (t.typ == "booster" and val and true or false)
+
+                 if pass then
+                     slot_idx = slot_idx + 1
+                     local time_wnd = self.slot[slot_idx] and self.slot[slot_idx].xcvb_time
+
+                     if time_wnd then
+                         if name == "cu_pain_killer" and block_sec and block_sec > 0 then
+                             time_wnd:Show(true)
+                             time_wnd:SetText(tostring(block_sec))
+                         elseif name == "cu_pain_shock" and pain_sec and pain_sec > 0 then
+                             time_wnd:Show(true)
+                             time_wnd:SetText(tostring(pain_sec))
+                         elseif name == "cu_hemothorax" and bleed_sec and bleed_sec > 0 then
+                             time_wnd:Show(true)
+                             time_wnd:SetText(tostring(bleed_sec))
+                         end
+                     end
+                 end
+             end
+         end
+        end
+    end
+end
+
+
+function RegisterIndicators()
+    add_pain_killer_indicator()
+    add_pain_shock_indicator()
+    add_hemothorax_indicator()
+    update_game_indicators()
+end

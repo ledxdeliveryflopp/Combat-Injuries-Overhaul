@@ -1,21 +1,56 @@
-
 function SaveState(m_data)
     if not m_data then return end
-
     local now = time_global()
+
+    -- 1. Обезболивающее
     if cu_const.BlockSoundUntil and cu_const.BlockSoundUntil > now then
         m_data.cu_pain_block_remaining = cu_const.BlockSoundUntil - now
     else
         m_data.cu_pain_block_remaining = nil
     end
+
+    -- 2. Гемоторакс (сохраняем остаток миллисекунд)
+    if cu_const.HemothoraxUntil and cu_const.HemothoraxUntil > now then
+        m_data.cu_hemothorax_remaining = cu_const.HemothoraxUntil - now
+    else
+        m_data.cu_hemothorax_remaining = nil
+    end
+
+    -- 3. Болевой шок от удара (остаток миллисекунд + уровень боли)
+    if cu_const.HitPainUntil and cu_const.HitPainUntil > now then
+        m_data.cu_hit_pain_remaining = cu_const.HitPainUntil - now
+        m_data.cu_hit_pain_level     = cu_const.HitPainLevel
+    else
+        m_data.cu_hit_pain_remaining = nil
+        m_data.cu_hit_pain_level     = nil
+    end
 end
 
 function LoadState(m_data)
     if not m_data then return end
+    local now = time_global()
 
+    -- 1. Восстанавливаем обезболивающее
     if m_data.cu_pain_block_remaining and m_data.cu_pain_block_remaining > 0 then
-        cu_const.BlockSoundUntil = time_global() + m_data.cu_pain_block_remaining
+        cu_const.BlockSoundUntil = now + m_data.cu_pain_block_remaining
     else
         cu_const.BlockSoundUntil = 0
+    end
+
+    -- 2. Восстанавливаем гемоторакс
+    if m_data.cu_hemothorax_remaining and m_data.cu_hemothorax_remaining > 0 then
+        cu_const.HemothoraxUntil = now + m_data.cu_hemothorax_remaining
+    else
+        cu_const.HemothoraxUntil = 0
+    end
+
+    -- 3. Восстанавливаем болевой шок
+    if m_data.cu_hit_pain_remaining and m_data.cu_hit_pain_remaining > 0 then
+        cu_const.HitPainUntil     = now + m_data.cu_hit_pain_remaining
+        cu_const.HitPainLevel     = m_data.cu_hit_pain_level or "low"
+        cu_const.CurrentPainLevel = cu_const.HitPainLevel
+    else
+        cu_const.HitPainUntil = 0
+        cu_const.HitPainLevel = "low"
     end
 end

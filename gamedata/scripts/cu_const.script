@@ -6,7 +6,11 @@ FadeStartTime = 0
 FADE_DURATION_MS = 12000
 PP_Active = false
 
+HitPainUntil = 0
+CurrentPainLevel = "low"
 LOW_HP_THRESHOLD = 0.15     -- 0.10 = 10% здоровья
+Hemothorax = false
+HemothoraxUntil = 0
 
 AgonyPainSound = sound_object("cu_injuries\\agony")
 KnockoutSounds = {
@@ -14,3 +18,11 @@ KnockoutSounds = {
     "cu_injuries\\knockout_2",
     "cu_injuries\\knockout_3",
 }
+PainIcons = {
+    low      = "ui\\pain_low.dds",
+    medium   = "ui\\pain_medium.dds",
+    heavy    = "ui\\pain_hard.dds",
+    critical = "ui\\pain_critical.dds",
+}
+
+

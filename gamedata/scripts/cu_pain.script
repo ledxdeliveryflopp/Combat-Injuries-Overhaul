@@ -1,13 +1,23 @@
+-- Файл: gamedata\scripts\cu_pain.script
 
-local function stop_low_hp_pain()
+local pain_volume_levels = {
+    low      = 0.5,
+    medium   = 1.0,
+    heavy    = 1.5,
+    critical = 2.0,
+}
+
+local last_hp        = nil
+local last_bhs       = {}
+
+local function stop_pain_effect()
     if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() and not cu_const.IsFadingOut then
         cu_const.IsFadingOut = true
         cu_const.FadeStartTime = time_global()
     end
 end
 
-local function start_low_hp_pain(pain_modifier)
-    -- 1. Запускаем звук, только если он ещё не играет (или затухал)
+local function start_pain_sound(pain_volume)
     if not cu_const.ActivePainSnd or not cu_const.ActivePainSnd:playing() or cu_const.IsFadingOut then
         if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() then
             cu_const.ActivePainSnd:stop()
@@ -20,68 +30,207 @@ local function start_low_hp_pain(pain_modifier)
         end
     end
 
-    -- 2. Обновляем громкость всегда (чтобы при падении с 15% до 10% звук сразу усилился)
     if cu_const.ActivePainSnd and cu_const.ActivePainSnd:playing() and not cu_const.IsFadingOut then
-        cu_const.ActivePainSnd.volume = pain_modifier
+        cu_const.ActivePainSnd.volume = pain_volume
     end
 end
 
+---@param pain_level "low" | "medium" | "heavy" | "critical"
+local function start_pain_effect(pain_level)
+    local pain_volume = pain_volume_levels[pain_level] or 0.5
+    start_pain_sound(pain_volume)
+    cu_effects.StartPainVisualEffect(pain_level)
+end
+
+-- ==========================================
+-- 1. ОБРАБОТКА РАЗОВОГО ПОПАДАНИЯ (БОЛЕВОЙ ШОК)
+-- ==========================================
+
+function GetPainTime()
+    local now = time_global()
+    local block_until = cu_const.BlockSoundUntil or 0
+    local hit_until   = cu_const.HitPainUntil or 0
+
+    -- Показываем время болевого шока, только если он активен И не заглушен обезболивающим
+    if hit_until > now and now >= block_until then
+        return math.ceil((hit_until - now) / 1000)
+    end
+    return nil
+end
+
+function GetHemothoraxTime()
+    local now = time_global()
+    local bleed_until = cu_const.HemothoraxUntil or 0
+    if bleed_until > now then
+        return math.ceil((bleed_until - now) / 1000)
+    end
+    return nil
+end
+
+function OnActorHit(obj, amount, local_direction, who, bone_index)
+    if not amount or amount <= 0 then return end
+
+    local now = time_global()
+    if now < cu_const.BlockSoundUntil or cu_effects.IsKnockedOut() then return end
+
+    local low_pain      = 0.08
+    local medium_pain   = 0.18
+    local heavy_pain    = 0.32
+    local critical_pain = 0.48
+    local debug = cu_injuries_mcm.get_config("debug_messages") or false
+    if amount >= critical_pain then
+        printf("[CU_Injuries] Start critical pain")
+        cu_const.CurrentPainLevel = "critical"
+        start_pain_effect("critical")
+        local duration = cu_injuries_mcm.get_config("critical_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_crit"), nil, nil, 10000)
+        end
+    elseif amount >= heavy_pain then
+        printf("[CU_Injuries] Start heavy pain")
+        cu_const.CurrentPainLevel = "heavy"
+        start_pain_effect("heavy")
+        local duration = cu_injuries_mcm.get_config("heavy_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_heavy"), nil, nil, 10000)
+        end
+    elseif amount >= medium_pain then
+        printf("[CU_Injuries] Start medium pain")
+        cu_const.CurrentPainLevel = "medium"
+        start_pain_effect("medium")
+        local duration = cu_injuries_mcm.get_config("medium_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_medium"), nil, nil, 10000)
+        end
+    elseif amount >= low_pain then
+        printf("[CU_Injuries] Start low pain")
+        cu_const.CurrentPainLevel = "low"
+        start_pain_effect("low")
+        local duration = cu_injuries_mcm.get_config("low_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_low"), nil, nil, 10000)
+        end
+    end
+end
+
+-- ==========================================
+-- 2. ПРОВЕРКА КОНЕЧНОСТЕЙ BHS (И ТРАВМ, И УДАРОВ)
+-- ==========================================
+local function check_bhs_status()
+    if not zzz_player_injuries then
+        return nil, 0
+    end
+
+    -- В разных версиях BHS здоровье лежит либо в .health, либо прямо в корне таблицы модуля
+    local src = zzz_player_injuries.health or zzz_player_injuries
+    local max_h = zzz_player_injuries.maxhp or {}
+    local limbs = {"head", "torso", "leftarm", "rightarm", "leftleg", "rightleg"}
+    local max_limb_loss_ratio = 0
+
+    for _, limb in ipairs(limbs) do
+        local cur_val = src[limb]
+        if type(cur_val) == "number" then
+            local prev_val = last_bhs[limb]
+            if prev_val and cur_val < prev_val then
+                local limb_max = (type(max_h) == "table" and max_h[limb]) or 10
+                local loss_ratio = (prev_val - cur_val) / limb_max
+                if loss_ratio > max_limb_loss_ratio then
+                    max_limb_loss_ratio = loss_ratio
+                end
+            end
+            last_bhs[limb] = cur_val
+        end
+    end
+
+    local head_max  = (type(max_h) == "table" and max_h.head) or 10
+    local torso_max = (type(max_h) == "table" and max_h.torso) or 10
+
+    local debug = cu_injuries_mcm.get_config("debug_messages") or false
+
+    if (type(src.head) == "number" and src.head <= head_max * 0.15) then
+        return "critical", max_limb_loss_ratio
+    end
+    if (type(src.torso) == "number" and src.torso <= torso_max * 0.20) then
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_torso_crit"), nil, nil, 10000)
+        end
+        local now = time_global()
+        if (cu_const.HemothoraxUntil or 0) <= now then
+            cu_effects.RandomizeHemothorax(now)
+        end
+        return "heavy", max_limb_loss_ratio
+    end
+    if (type(src.leftleg) == "number" and src.leftleg <= 0) or (type(src.rightleg) == "number" and src.rightleg <= 0) then
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_leg_damage"), nil, nil, 10000)
+        end
+        return "medium", max_limb_loss_ratio
+    end
+    if (type(src.leftarm) == "number" and src.leftarm <= 0) or (type(src.rightarm) == "number" and src.rightarm <= 0) then
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_arm_damage"), nil, nil, 10000)
+        end
+          return "low", max_limb_loss_ratio
+    end
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_nil_damage"), nil, nil, 10000)
+        end
+    return nil, max_limb_loss_ratio
+end
+
+
+-- ==========================================
+-- 3. ОСНОВНОЙ ЦИКЛ ОБНОВЛЕНИЯ
+-- ==========================================
 function OnLowHpUpdate()
-    if not db.actor or not db.actor:alive() then return end
-    if cu_effects.IsKnockedOut() then return end
+    if not db.actor or not db.actor:alive() then
+        last_hp = nil
+        last_bhs = {}
+        return
+    end
+    if cu_effects.IsKnockedOut() then
+        last_hp = db.actor.health
+        return
+    end
 
     local now = time_global()
     local hp = db.actor.health
-    local mid_hp  = cu_injuries_mcm.get_config("hp_threshold_mid") / 100
-    local crit_hp = cu_injuries_mcm.get_config("hp_threshold_crit") / 100
-    local fade_ms = cu_injuries_mcm.get_config("fade_duration") * 1000
-    
-    -- 1. Критическая стадия (<= crit_hp)
-    if hp <= crit_hp and now >= cu_const.BlockSoundUntil then
-        start_low_hp_pain(2.0)
-        cu_effects.StartPainVisualEffect()
-        cu_effects.UpdateKnockoutTimer(true) -- Запускаем отсчёт до потери сознания!
+    if not last_hp then last_hp = hp end
 
-    -- 2. Начальная стадия (<= mid_hp)
-    elseif hp <= mid_hp and now >= cu_const.BlockSoundUntil then
-        start_low_hp_pain(1.0)
-        cu_effects.StartPainVisualEffect()
-        cu_effects.UpdateKnockoutTimer(false) -- Сбрасываем таймер обморока
+    cu_effects.CheckHemothoraxStatus(now)
 
-    -- 3. Здоровье выше порога ИЛИ действует обезболивающее
+    -- Считаем урон по общему HP и по конечностям BHS за последний кадр
+    local hp_lost = last_hp - hp
+    last_hp = hp
+    local bhs_injury_level, limb_damage_ratio = check_bhs_status()
+
+    -- Берём максимальный урон (либо от общего HP, либо от пробития конечности)
+    -- Внутри OnLowHpUpdate():
+    local effective_hit = math.max(hp_lost, limb_damage_ratio)
+    if effective_hit >= 0.08 then
+        printf("[CU_Injuries] Hit detected! HP lost: %s | Limb ratio: %s", tostring(hp_lost), tostring(limb_damage_ratio))
+        OnActorHit(db.actor, effective_hit, nil, nil, nil)
+    end
+
+    -- 1. Критическая стадия (выбита голова)
+    if (bhs_injury_level == "critical") and now >= cu_const.BlockSoundUntil then
+        start_pain_effect("critical")
+        cu_effects.UpdateKnockoutTimer()
+
+    elseif (bhs_injury_level == "heavy" or bhs_injury_level == "medium" or bhs_injury_level == "low") and now >= cu_const.BlockSoundUntil then
+        start_pain_effect(bhs_injury_level)
+        cu_effects.DropKnockoutTime()
     else
-        if hp > mid_hp then
-            stop_low_hp_pain()
+        if now >= cu_const.HitPainUntil or now < cu_const.BlockSoundUntil then
+            cu_const.HitPainUntil = 0
+            stop_pain_effect()
         end
-        cu_effects.UpdateKnockoutTimer(false) -- Сбрасываем таймер обморока
+        cu_effects.DropKnockoutTime()
     end
 
-
-    -- 3. Синхронное управление громкостью и силой визуального эффекта
-    if cu_const.IsFadingOut and cu_const.ActivePainSnd then
-        if cu_const.ActivePainSnd:playing() then
-            local progress = (now - cu_const.FadeStartTime) / cu_const.FADE_DURATION_MS
-            if progress >= 1.0 then
-                cu_const.ActivePainSnd:stop()
-                cu_const.IsFadingOut = false
-                cu_effects.StopPainVisualEffect()
-            else
-                local current_intensity = 1.0 - progress
-                cu_const.ActivePainSnd.volume = current_intensity
-                
-                -- Плавно ослабляем эффект экрана синхронно со звуком
-                if cu_const.PP_Active then
-                    level.set_pp_effector_factor(cu_const.PP_EFFECT_ID, current_intensity * 0.7)
-                end
-            end
-        else
-            cu_const.IsFadingOut = false
-            cu_effects.StopPainVisualEffect()
-        end
-    elseif cu_const.PP_Active and not cu_const.IsFadingOut then
-        -- Если агония в самом разгаре (не затухает):
-        -- Делаем легкую пульсацию размытия (от 0.45 до 0.75) в такт тяжелому дыханию/пульсу
-        local pulse = 0.6 + math.sin(now * 0.004) * 0.15
-        level.set_pp_effector_factor(cu_const.PP_EFFECT_ID, pulse)
-    end
+    cu_effects.UpdatePainVisualEffect(now)
 end

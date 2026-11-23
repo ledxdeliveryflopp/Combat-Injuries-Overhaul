@@ -9,16 +9,30 @@
     <string id="st_cu_sec">
         <text>sec.</text>
     </string>
-	<?xml version="1.0" encoding="windows-1251"?>
 
-    <string id="st_cu_injuries_loaded">
-        <text>CU_Injuries Loaded.</text>
-    </string>
     <string id="st_cu_pain_block_desc">
-        <text>Painkiller</text>
+        <text>Обезбаливает</text>
     </string>
     <string id="st_cu_sec">
         <text>sec.</text>
+    </string>
+	
+	<string id="st_cu_hemothorax_start">
+		<text>Гемоторакс! Используйте барвинок или комплект выживания.</text>
+	</string>
+	<string id="st_cu_hemothorax_stop">
+		<text>Гемоторакс остановлен.</text>
+	</string>
+	<string id="st_cu_hemothorax_stop_desc">
+        <text>Останавливает гемоторакс</text>
+    </string>
+	
+    <string id="st_cu_deep_bleed_start">
+        <text>Глубокое кровотечение! Обычные бинты не помогут — нужен Барвинок или комплект выживания.</text>
+    </string>
+
+    <string id="st_cu_deep_bleed_stop">
+        <text>Глубокое кровотечение остановлено.</text>
     </string>
 
         <!-- Заголовок меню в списке модов MCM -->
@@ -28,49 +42,86 @@
     <string id="ui_mcm_cu_injuries_title">
         <text>Настройки системы ранений CU Injuries</text>
     </string>
+	
+	<!-- Разделители -->
+	<string id="ui_mcm_cu_injuries_desc_pain">
+        <text>Настройки длительности болевого синдрома при попаданиях (в секундах):</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_desc_hemo">
+        <text>Настройки тяжёлых травм:</text>
+    </string>
+    <string id="ui_mcm_cu_injuries_desc_debug">
+        <text>Режим разработчика:</text>
+    </string>
 
     <!-- Ползунки порогов -->
-    <string id="ui_mcm_cu_injuries_hp_threshold_mid">
-        <text>Минимальный порог тяжелого ранения (% HP)</text>
+	
+	<string id="ui_mcm_cu_injuries_low_pain_duration">
+        <text>Длительность легкого болевого синдрома.</text>
     </string>
-    <string id="ui_mcm_cu_injuries_hp_threshold_mid_desc">
-        <text>Процент здоровья, при котором начинается лёгкое размытие и тихий звук боли.</text>
+	<string id="ui_mcm_cu_injuries_low_pain_duration_desc">
+        <text>Сколько секунд будут длиться эффекты при легком ранении.</text>
     </string>
-
-    <string id="ui_mcm_cu_injuries_hp_threshold_crit">
-        <text>Порог критического ранения (% HP)</text>
+	<string id="ui_mcm_cu_injuries_medium_pain_duration">
+        <text>Длительность среднего болевого синдрома.</text>
     </string>
-   <string id="ui_mcm_cu_injuries_hp_threshold_crit_desc">
-        <text>Процент здоровья, при котором звук и визуальный эффект достигают максимума.</text>
+	<string id="ui_mcm_cu_injuries_medium_pain_duration_desc">
+        <text>Сколько секунд будут длиться эффекты при среднем ранении.</text>
+    </string>
+	<string id="ui_mcm_cu_injuries_heavy_pain_duration">
+        <text>Длительность тяжелого болевого синдрома.</text>
+    </string>
+	<string id="ui_mcm_cu_injuries_heavy_pain_duration_desc">
+        <text>Сколько секунд будут длиться эффекты при тяжелом ранении.</text>
+    </string>
+	<string id="ui_mcm_cu_injuries_critical_pain_duration">
+        <text>Длительность критического болевого синдрома.</text>
+    </string>
+	<string id="ui_mcm_cu_injuries_critical_pain_duration_desc">
+        <text>Сколько секунд будут длиться эффекты при критическом ранении.</text>
     </string>
 	
-	<string id="ui_mcm_cu_injuries_knockout_timeout">
-        <text>Время до потери сознания (сек.)</text>
+	<!-- Ползунки травм -->
+	<string id="ui_mcm_cu_injuries_hemothorax_chance">
+        <text>Вероятность возникновения гемоторокса.</text>
     </string>
-	   <string id="ui_mcm_cu_injuries_knockout_timeout_desc">
-        <text>Время до потери сознания от крит ранения.</text>
-    </string>
-
-    <string id="ui_mcm_cu_injuries_fade_duration">
-        <text>Длительность затухания (сек.)</text>
+	<string id="ui_mcm_cu_injuries_hemothorax_chance_decs">
+        <text>Шанс возникновения гемоторокса при ранении груди(тяжелое кровотечение которое лечится не всеми медикоментами).</text>
     </string>
 
-    <!-- Ползунки лекарств -->
-    <string id="ui_mcm_cu_injuries_morphine_cd">
-        <text>Действие морфина (сек.)</text>
-    </string>
-    <string id="ui_mcm_cu_injuries_ibuprofen_cd">
-        <text>Действие ибупрофена (сек.)</text>
-    </string>
-    <string id="ui_mcm_cu_injuries_analgetic_cd">
-        <text>Действие анальгина (сек.)</text>
-    </string>
-    <string id="ui_mcm_cu_injuries_stimpack_cd">
-        <text>Действие стимпаков (сек.)</text>
-    </string>    
+
     <!-- Чекбокс дебага -->
     <string id="ui_mcm_cu_injuries_debug_keys">
         <text>Включить тестовые клавиши (N, M, K)</text>
+    </string>
+	<string id="ui_mcm_cu_injuries_debug_messages">
+        <text>Включить отладочные сообщения.</text>
+    </string>
+	
+	<string id="st_cu_debug_pain_crit">
+        <text>[CU Injures] Debug: Критическое получение урона</text>
+    </string>
+	<string id="st_cu_debug_pain_heavy">
+        <text>[CU Injures] Debug: Тяжелое получение урона</text>
+    </string>
+	<string id="st_cu_debug_pain_medium">
+        <text>[CU Injures] Debug: Умеренное получение урона</text>
+    </string>
+	<string id="st_cu_debug_pain_low">
+        <text>[CU Injures] Debug: Легкое получение урона</text>
+    </string>
+
+	<string id="st_cu_debug_torso_crit">
+        <text>[CU Injures] BHS Debug: Критическое ранение торса</text>
+    </string>
+	<string id="st_cu_debug_leg_damage">
+        <text>[CU Injures] BHS Debug: Ранение в ногу</text>
+    </string>
+	<string id="st_cu_debug_arm_damage">
+        <text>[CU Injures] BHS Debug: Ранение в руку</text>
+    </string>
+	<string id="st_cu_debug_nil_damage">
+        <text>[CU Injures] BHS Debug: Нулевое ранение в конечности</text>
     </string>
 
 </string_table>

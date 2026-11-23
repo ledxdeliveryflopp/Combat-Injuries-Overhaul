@@ -1,14 +1,33 @@
 local IBUPROFEN_COOLDOWN_MS  = 75000    -- Пауза после ибупрофена (75 сек)
 local MORPHINE_COOLDOWN_MS = 300000  -- Пауза после морофия (300 сек)
+local FENTANYL_COOLDOWN_MS = 434000  -- Пауза после морофия (434 сек)
+local SALICIDIC_COOLDOWN_MS = 120000  -- Пауза после морофия (120 сек)
 
 med_pain_block = {
     ["morphine"]          = MORPHINE_COOLDOWN_MS,
     ["akvatab"]         = IBUPROFEN_COOLDOWN_MS,
+    ["tetanus"]         = FENTANYL_COOLDOWN_MS,
+    ["salicidic_acid"]         = SALICIDIC_COOLDOWN_MS,
+}
+
+HemothoraxStopMeds = {
+    ["drug_coagulant"]        = true,  -- барвинок
+    ["survival_kit"]        = true,  -- комплек выживания
 }
 
 function OnMedItemUse(item)
     if not item then return end
     local sec = item:section()
+    local now = time_global()
+
+    if (cu_const.HemothoraxUntil or 0) > now and HemothoraxStopMeds and HemothoraxStopMeds[sec] then
+        cu_const.HemothoraxUntil = 0
+        local cond = db.actor:cast_Actor():conditions()
+        if cond and cond.HealWounds then
+            cond:HealWounds(1.0)
+        end
+        news_manager.send_tip(db.actor, game.translate_string("st_cu_hemothorax_stop"), nil, nil, 4000)
+    end
 
     local cooldown = med_pain_block[sec]
     
@@ -23,35 +42,50 @@ function OnMedItemUse(item)
     end
 end
 
-
--- Сохраняем оригинальную функцию генерации описания из GAMMA
--- local orig_build_desc_header = ui_item.build_desc_header
-
--- function ui_item.build_desc_header(obj, sec, str)
---     str = orig_build_desc_header(obj, sec, str)
-    
---     local item_sec = obj and obj:section() or sec
---     if not item_sec then return str end
-
---     local cooldown_ms = med_pain_block[item_sec]
---     if cooldown_ms then
---         local title = game.translate_string("st_cu_pain_block_desc")
-        
---         local clr_dot  = "%c[255,80,190,255]"   -- Голубой цвет точки
---         local clr_text = "%c[255,200,200,200]"  -- Светло-серый цвет текста
---         local clr_def  = "%c[default]"          -- Сброс цвета
-
---         -- Ставим перенос строки и в начале, и в конце (с невидимым пробелом после \n)
---         str = str .. "\\n" .. clr_dot .. " \149 " .. clr_text .. title .. clr_def .. "\\n "
---     end
-
---     return str
--- end
-
 function GetPainBlockStatus()
     local now = time_global()
     if cu_const.BlockSoundUntil and cu_const.BlockSoundUntil > now then
         return math.ceil((cu_const.BlockSoundUntil - now) / 1000)
     end
-    return 0
+    return nil
+end
+
+local function append_property_line(str, text_id, dot_color)
+    local title    = game.translate_string(text_id)
+    local clr_dot  = dot_color or "%c[255,80,190,255]"
+    local clr_text = "%c[255,200,200,200]"
+    local clr_def  = "%c[default]"
+
+    local custom_line = "\\n" .. clr_dot .. " \149 " .. clr_text .. title .. clr_def
+    local header = game.translate_string("st_itm_desc_properties") .. ":"
+
+    local pos_start, pos_end = string.find(str, header, 1, true)
+    if pos_end then
+        return string.sub(str, 1, pos_end) .. custom_line .. string.sub(str, pos_end + 1)
+    else
+        return str .. "\\n\\n" .. clr_dot .. " \149 " .. clr_text .. title .. clr_def
+    end
+end
+
+
+function RegisterItemDescriptions()
+    if not ui_item or not ui_item.build_desc_header then return end
+    local orig_build_desc_header = ui_item.build_desc_header
+
+    function ui_item.build_desc_header(obj, sec, str)
+        str = orig_build_desc_header(obj, sec, str)
+
+        local item_sec = obj and obj:section() or sec
+        if not item_sec then return str end
+
+        if cu_meds.med_pain_block and cu_meds.med_pain_block[item_sec] then
+            str = append_property_line(str, "st_cu_pain_block_desc", "%c[255,80,190,255]")
+        end
+
+        if cu_meds.HemothoraxStopMeds and cu_meds.HemothoraxStopMeds[item_sec] then
+            str = append_property_line(str, "st_cu_hemothorax_stop_desc", "%c[255,255,90,90]")
+        end
+
+        return str
+    end
 end

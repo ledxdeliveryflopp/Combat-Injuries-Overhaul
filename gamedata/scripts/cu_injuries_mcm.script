@@ -2,11 +2,15 @@
 
 -- Значения по умолчанию (используются, если игрок ещё не крутил ползунки)
 local defaults = {
-    hp_threshold_mid  = 15,  -- Порог слабой агонии (%)
-    hp_threshold_crit = 10,  -- Порог сильной агонии (%)
     fade_duration     = 12,  -- Длительность затухания (сек)
+    hemothorax_chance = 40,  -- Шанс гемоторакса от тяжелого ранения в грудь (%)
+    low_pain_duration = 5,
+    medium_pain_duration = 12,
+    heavy_pain_duration = 25,
+    critical_pain_duration = 40,
     knockout_timeout = 60,
     debug_keys        = false, -- Включить тестовые клавиши (N, M, K)
+    debug_messages = false,
 }
 
 -- Удобная функция для чтения настроек из других ваших скриптов
@@ -23,21 +27,28 @@ function on_mcm_load()
         id = "cu_injuries",
         sh = true,
         gr = {
-            -- Заголовок страницы
+            -- Главный баннер
             { id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_cu_injuries_title", size = {512, 50}, spacing = 20 },
 
-            -- Пороги здоровья и затухание
-            { id = "hp_threshold_mid",  type = "track", val = 2, min = 5,  max = 50,  step = 1, def = defaults.hp_threshold_mid },
-            { id = "hp_threshold_crit", type = "track", val = 2, min = 1,  max = 30,  step = 1, def = defaults.hp_threshold_crit },
-            { id = "knockout_timeout", type = "track", val = 2, min = 25,  max = 800,  step = 1, def = defaults.knockout_timeout },
-            { id = "fade_duration",     type = "track", val = 2, min = 1,  max = 30,  step = 1, def = defaults.fade_duration },
+            -- БЛОК 1: Длительность болевого шока
+            { id = "desc_pain", type = "desc", text = "ui_mcm_cu_injuries_desc_pain"},
+            { id = "low_pain_duration",      type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.low_pain_duration },
+            { id = "medium_pain_duration",   type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.medium_pain_duration },
+            { id = "heavy_pain_duration",    type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.heavy_pain_duration },
+            { id = "critical_pain_duration", type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.critical_pain_duration },
 
             { id = "line1", type = "line" },
 
+            -- БЛОК 2: Гемоторакс / Глубокое кровотечение
+            { id = "desc_hemo", type = "desc", text = "ui_mcm_cu_injuries_desc_hemo"},
+            { id = "hemothorax_chance", type = "track", val = 2, min = 0, max = 100, step = 1, def = defaults.hemothorax_chance },
+
             { id = "line2", type = "line" },
 
-            -- Чекбокс для отладочных клавиш
+            -- БЛОК 3: Отладка
+            { id = "desc_debug", type = "desc", text = "ui_mcm_cu_injuries_desc_debug"},
             { id = "debug_keys", type = "check", val = 1, def = defaults.debug_keys },
+            { id = "debug_messages", type = "check", val = 1, def = defaults.debug_messages },
         }
     }
     return op
