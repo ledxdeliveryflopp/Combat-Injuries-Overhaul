@@ -3,15 +3,12 @@
     <string id="st_cu_injuries_loaded">
         <text>CU_Injuries Loaded.</text>
     </string>
-    <string id="st_cu_pain_block_desc">
-        <text>Painkiller</text>
-    </string>
     <string id="st_cu_sec">
         <text>sec.</text>
     </string>
 
     <string id="st_cu_pain_block_desc">
-        <text>Обезбаливает</text>
+        <text>Обезболивает</text>
     </string>
     <string id="st_cu_sec">
         <text>sec.</text>
@@ -25,14 +22,6 @@
 	</string>
 	<string id="st_cu_hemothorax_stop_desc">
         <text>Останавливает гемоторакс</text>
-    </string>
-	
-    <string id="st_cu_deep_bleed_start">
-        <text>Глубокое кровотечение! Обычные бинты не помогут — нужен Барвинок или комплект выживания.</text>
-    </string>
-
-    <string id="st_cu_deep_bleed_stop">
-        <text>Глубокое кровотечение остановлено.</text>
     </string>
 
         <!-- Заголовок меню в списке модов MCM -->
