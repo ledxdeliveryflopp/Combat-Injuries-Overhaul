@@ -9,6 +9,7 @@ CurrentPainLevel = "low"
 LOW_HP_THRESHOLD = 0.15     -- 0.10 = 10% здоровья
 Hemothorax = false
 HemothoraxUntil = 0
+HemothoraxBlockUntil = 0
 
 AgonyPainSound = sound_object("cu_injuries\\agony")
 KnockoutSounds = {

@@ -1,0 +1,85 @@
+local last_hp = nil
+
+function OnLowHpUpdate()
+    if not db.actor or not db.actor:alive() then
+        last_hp = nil
+        cu_bhs.LastBhs = {}
+        return
+    end
+
+    local now = time_global()
+    local hp = db.actor.health
+    if not last_hp then last_hp = hp end
+
+    cu_hemothorax.CheckHemothoraxStatus(now)
+
+    -- Считаем урон по общему HP и по конечностям BHS за последний кадр
+    local hp_lost = last_hp - hp
+    last_hp = hp
+    local bhs_injury_level, limb_damage_ratio = cu_bhs.CheckBhsStatus()
+
+    -- Берём максимальный урон (либо от общего HP, либо от пробития конечности)
+    -- Внутри OnLowHpUpdate():
+    local effective_hit = math.max(hp_lost, limb_damage_ratio)
+    if effective_hit >= 0.08 then
+        printf("[CU Injuries] Hit detected! HP lost: %s | Limb ratio: %s", tostring(hp_lost), tostring(limb_damage_ratio))
+        OnActorHit(db.actor, effective_hit, nil, nil, nil)
+    end
+
+    cu_bhs.TriggerPainByBhs(bhs_injury_level, now)
+
+    cu_effects.UpdatePainVisualEffect(now)
+end
+
+function OnActorHit(obj, amount, local_direction, who, bone_index)
+    if not amount or amount <= 0 then return end
+
+    local now = time_global()
+    if now < (cu_const.BlockSoundUntil or 0) or now < (cu_const.HitPainUntil or 0) then
+        return
+    end
+    local low_pain      = 0.08
+    local medium_pain   = 0.18
+    local heavy_pain    = 0.32
+    local critical_pain = 0.48
+    
+    local debug = cu_injuries_mcm.GetMcmGonfig("debug_messages") or false
+
+    if amount >= critical_pain then
+        printf("[CU_Injuries] Start critical pain")
+        cu_const.CurrentPainLevel = "critical"
+        cu_pain.StartPainEffect("critical")
+        local duration = cu_injuries_mcm.GetMcmGonfig("critical_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_crit"), nil, nil, 10000)
+        end
+    elseif amount >= heavy_pain then
+        printf("[CU_Injuries] Start heavy pain")
+        cu_const.CurrentPainLevel = "heavy"
+        cu_pain.StartPainEffect("heavy")
+        local duration = cu_injuries_mcm.GetMcmGonfig("heavy_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_heavy"), nil, nil, 10000)
+        end
+    elseif amount >= medium_pain then
+        printf("[CU_Injuries] Start medium pain")
+        cu_const.CurrentPainLevel = "medium"
+        cu_pain.StartPainEffect("medium")
+        local duration = cu_injuries_mcm.GetMcmGonfig("medium_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_medium"), nil, nil, 10000)
+        end
+    elseif amount >= low_pain then
+        printf("[CU_Injuries] Start low pain")
+        cu_const.CurrentPainLevel = "low"
+        cu_pain.StartPainEffect("low")
+        local duration = cu_injuries_mcm.GetMcmGonfig("low_pain_duration") * 1000
+        cu_const.HitPainUntil = math.max(cu_const.HitPainUntil or 0, now + duration)
+        if debug then
+            news_manager.send_tip(db.actor, game.translate_string("st_cu_debug_pain_low"), nil, nil, 10000)
+        end
+    end
+end

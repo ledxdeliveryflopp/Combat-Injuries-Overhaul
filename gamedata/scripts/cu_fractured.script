@@ -1,0 +1,123 @@
+
+BonesCondition = {
+    LeftLeg  = false,
+    RightLeg = false,
+    LeftArm = false,
+    RightArm = false
+}
+
+BHSToBone = {
+    rightleg = "RightLeg",
+    leftleg  = "LeftLeg",
+    rightarm = "RightArm",
+    leftarm  = "LeftArm",
+}
+
+local limb_names = {
+    LeftLeg  = "st_cu_leftleg_fractured",
+    RightLeg = "st_cu_rightleg_fractured",
+    LeftArm  = "st_cu_leftarm_fractured",
+    RightArm = "st_cu_rightarm_fractured",
+}
+
+local next_arm_shake_time = 0
+
+BlockFractureUntil = 0
+FractureDecreaseValue = 0
+
+
+function UpdateFractureStaminaEffects()
+    if not db.actor or not db.actor:alive() then return end
+
+    if FractureDecreaseValue > 0 then
+        local max_stamina_cap = math.max(0.25, 1.0 - FractureDecreaseValue)
+        if db.actor.power > max_stamina_cap then
+            db.actor.power = max_stamina_cap
+        end
+    end
+end
+
+
+local last_shake_tick = nil
+
+
+function UpdateArmFracturedShakeEffect()
+    if not db.actor or not db.actor:alive() then
+        last_shake_tick = nil
+        return
+    end
+
+    local broken_arms = 0
+    if BonesCondition.LeftArm then broken_arms = broken_arms + 1 end
+    if BonesCondition.RightArm then broken_arms = broken_arms + 1 end
+
+    if broken_arms == 0 then
+        last_shake_tick = nil
+        return
+    end
+
+    local active_item = db.actor:active_item()
+    if not active_item or not IsWeapon(active_item) then return end
+
+    local is_aiming = (active_item.IsZoomed and active_item:IsZoomed())
+                   or (_G.axr_main and _G.axr_main.weapon_is_zoomed)
+                   or false
+
+    local now = time_global()
+    if not last_shake_tick then last_shake_tick = now end
+    local dt = math.min(0.1, (now - last_shake_tick) / 1000) -- Дельта времени в секундах
+    last_shake_tick = now
+
+    if is_aiming and dt > 0 then
+        local sway_speed = 0.002 * broken_arms
+
+        local dir = device().cam_dir
+        -- Инвертируем базовые углы камеры (-getH, -getP), а смещение прибавляем снаружи!
+        local h = -dir:getH() + math.sin(now * 0.004) * sway_speed * dt
+        local p = -dir:getP() + math.cos(now * 0.0028) * sway_speed * dt
+
+        db.actor:set_actor_direction(h, p, 0)
+    end
+end
+
+
+local function add_fracture_stamina_penalty(bone)
+    if bone == "RightLeg" or bone == "LeftLeg" then
+        if FractureDecreaseValue < 0.75 then
+            FractureDecreaseValue = math.min(0.75, FractureDecreaseValue + 0.375)
+        end
+    end
+end
+
+
+---@param bone "LeftLeg" | "RightLeg" | "LeftArm" | "RightArm"
+local function fracture_bone(bone)
+    local target_bone = BonesCondition[bone]
+    if target_bone == false then
+        BonesCondition[bone] = true
+        news_manager.send_tip(db.actor, game.translate_string(limb_names[bone]), nil, nil, 5000)
+        add_fracture_stamina_penalty(bone)
+    end
+end
+
+---@param bone "LeftLeg" | "RightLeg" | "LeftArm" | "RightArm"
+function IsBoneFractured(bone, is_indicator)
+    if is_indicator then
+        local fracture_status = BonesCondition[bone]
+        return fracture_status and 1 or nil
+    end
+   return BonesCondition[bone]
+end
+
+---@param bone "LeftLeg" | "RightLeg" | "LeftArm" | "RightArm"
+function RandomizeFracture(bone)
+
+    local bone_status = IsBoneFractured(bone)
+    if not bone_status then
+        local fracture_chance = cu_injuries_mcm.GetMcmGonfig("fracture_chance") or 30
+        if math.random(1, 100) <= fracture_chance then
+            printf("[CU_Injuries] %s is broken", bone)
+            fracture_bone(bone)
+        end
+    end
+end

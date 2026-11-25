@@ -7,9 +7,6 @@
         <text>sec.</text>
     </string>
 
-    <string id="st_cu_pain_block_desc">
-        <text>Обезболивает</text>
-    </string>
     <string id="st_cu_sec">
         <text>sec.</text>
     </string>
@@ -20,9 +17,30 @@
 	<string id="st_cu_hemothorax_stop">
 		<text>Гемоторакс остановлен.</text>
 	</string>
+
+	<string id="st_cu_leftleg_fractured">
+        <text>Левая нога сломана</text>
+    </string>
+	<string id="st_cu_rightleg_fractured">
+        <text>Правая нога сломана</text>
+    </string>
+	<string id="st_cu_leftarm_fractured">
+        <text>Левая рука сломана</text>
+    </string>
+	<string id="st_cu_rightarm_fractured">
+        <text>Правая рука сломана</text>
+    </string>
+
 	<string id="st_cu_hemothorax_stop_desc">
         <text>Антикоагулянт</text>
     </string>
+	<string id="st_cu_fracture_heal_desc">
+        <text>Лечит переломы.</text>
+    </string>
+	<string id="st_cu_pain_block_desc">
+        <text>Обезболивает</text>
+    </string>
+	
 
         <!-- Заголовок меню в списке модов MCM -->
     <string id="ui_mcm_menu_cu_injuries">
@@ -77,11 +95,12 @@
 	<string id="ui_mcm_cu_injuries_hemothorax_chance_decs">
         <text>Шанс возникновения гемоторокса при ранении груди(тяжелое кровотечение которое лечится не всеми медикоментами).</text>
     </string>
-	<string id="ui_mcm_cu_injuries_hemothorax_min_hp">
-		<text>Порог здоровья торса для появления гемоторакса (%)</text>
-	</string>
-	<string id="ui_mcm_cu_injuries_hemothorax_min_hp_decs">
-        <text>При сколько %хп в груди, появляется шанс на появления гемоторокса.</text>
+
+	<string id="ui_mcm_cu_injuries_fracture_chance">
+        <text>Вероятность перелома конечностей.</text>
+    </string>
+	<string id="ui_mcm_cu_injuries_fracture_chance_decs">
+        <text>Шанс возникновения перелома при получении урона в конечность.</text>
     </string>
 
 

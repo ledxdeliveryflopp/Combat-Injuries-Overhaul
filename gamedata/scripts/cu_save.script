@@ -16,6 +16,12 @@ function SaveState(m_data)
         m_data.cu_hemothorax_remaining = nil
     end
 
+    if cu_const.HemothoraxBlockUntil and cu_const.HemothoraxBlockUntil > now then
+        m_data.cu_hemothorax_block = cu_const.HemothoraxBlockUntil - now
+    else
+        m_data.cu_hemothorax_block = nil
+    end
+
     -- 3. Болевой шок от удара
     if cu_const.HitPainUntil and cu_const.HitPainUntil > now then
         m_data.cu_hit_pain_remaining = cu_const.HitPainUntil - now
@@ -31,6 +37,13 @@ function SaveState(m_data)
         m_data.cu_fatigue_level = fat
     else
         m_data.cu_fatigue_level = nil
+    end
+
+    m_data.cu_bone_condition = cu_fractured.BonesCondition
+    if cu_fractured.BlockFractureUntil and cu_fractured.BlockFractureUntil > 0 then
+        m_data.cu_fracture_block = now + cu_fractured.BlockFractureUntil
+    else
+        cu_fractured.BlockFractureUntil = 0
     end
 end
 
@@ -51,8 +64,15 @@ function LoadState(m_data)
     else
         cu_const.HemothoraxUntil = 0
     end
+    
+    -- 3. Восстанавливаем блокировку гемоторакса
+    if m_data.cu_hemothorax_block and m_data.cu_hemothorax_block > 0 then
+        cu_const.HemothoraxBlockUntil = now + m_data.cu_hemothorax_block
+    else
+        cu_const.HemothoraxBlockUntil = 0
+    end
 
-    -- 3. Восстанавливаем болевой шок
+    -- 4. Восстанавливаем болевой шок
     if m_data.cu_hit_pain_remaining and m_data.cu_hit_pain_remaining > 0 then
         cu_const.HitPainUntil     = now + m_data.cu_hit_pain_remaining
         cu_const.HitPainLevel     = m_data.cu_hit_pain_level or "low"
@@ -62,8 +82,16 @@ function LoadState(m_data)
         cu_const.HitPainLevel = "low"
     end
 
-    -- 4. Восстанавливаем уровень усталости
+    -- 5. Восстанавливаем уровень усталости
     if cu_fatigue and cu_fatigue.SetFatigueNumeric then
         cu_fatigue.SetFatigueNumeric(m_data.cu_fatigue_level or 0)
+    end
+
+    cu_fractured.BonesCondition =  m_data.cu_bone_condition
+    
+    if m_data.cu_fracture_block and m_data.cu_fracture_block > 0 then
+        cu_const.HemothoraxBlockUntil = now + m_data.cu_fracture_block
+    else
+        cu_fractured.BlockFractureUntil = 0
     end
 end

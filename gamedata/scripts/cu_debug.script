@@ -10,7 +10,7 @@ local function apply_test_hit(power)
 end
 
 function DebugKeys(key)
-    if not cu_injuries_mcm.get_config("debug_keys") then return end
+    if not cu_injuries_mcm.GetMcmGonfig("debug_keys") then return end
     if not db.actor or not db.actor:alive() then return end
 
     if key == DIK_keys.DIK_N then

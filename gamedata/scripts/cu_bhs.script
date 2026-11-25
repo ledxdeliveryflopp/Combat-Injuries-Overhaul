@@ -1,0 +1,128 @@
+LastBhs = {}
+
+function CheckDamageByBhs(limbs, src, max_h, max_limb_loss_ratio)
+    local min_fracture_hit_ratio = 0.15
+    local min_hemothorax_hit_ratio = 0.15
+
+    for _, limb in ipairs(limbs) do
+        local cur_val = src[limb]
+        if type(cur_val) == "number" then
+            local prev_val = LastBhs[limb]
+            if prev_val and cur_val < prev_val then
+                local limb_max   = (type(max_h) == "table" and max_h[limb]) or 10
+                local loss_ratio = (prev_val - cur_val) / limb_max
+
+                if loss_ratio > max_limb_loss_ratio then
+                    max_limb_loss_ratio = loss_ratio
+                end
+
+                local bone_key = cu_fractured.BHSToBone[limb]
+                if bone_key and loss_ratio >= min_fracture_hit_ratio then
+                    printf("[CU_Injuries] Hit in %s! Loss ratio: %s", bone_key, tostring(loss_ratio))
+                    cu_fractured.RandomizeFracture(bone_key)
+                end
+                if limb == "torso" and loss_ratio >= min_hemothorax_hit_ratio then
+                    printf("[CU_Injuries] Hit in %s! Loss ratio: %s", bone_key, tostring(loss_ratio))
+                    cu_effects.cu_hemothorax.RandomizeHemothorax()
+                end
+            end
+            LastBhs[limb] = cur_val
+        end
+    end
+
+    -- Обязательно возвращаем обновлённое значение обратно!
+    return max_limb_loss_ratio
+end
+
+
+function ReturnLowHpLimb(src, max_limb_loss_ratio, max_h)
+    local head_max  = (type(max_h) == "table" and max_h.head) or 10
+    local torso_max = (type(max_h) == "table" and max_h.torso) or 10
+
+    if (type(src.head) == "number" and src.head <= head_max * 0.15) then
+        return "critical", max_limb_loss_ratio
+    end
+    if (type(src.torso) == "number" and src.torso <= torso_max * 0.20) then
+        return "heavy", max_limb_loss_ratio
+    end
+    if (type(src.rightleg) == "number" and src.rightleg <= 0) then
+        return "medium", max_limb_loss_ratio
+    end
+    if (type(src.leftleg) == "number" and src.leftleg <= 0) then
+        return "medium", max_limb_loss_ratio
+    end
+    if (type(src.rightarm) == "number" and src.rightarm <= 0) then
+        return "low", max_limb_loss_ratio
+    end
+    if (type(src.leftarm) == "number" and src.leftarm <= 0) then
+        return "low", max_limb_loss_ratio
+    end
+
+    return nil, max_limb_loss_ratio
+end
+
+
+function CheckBhsStatus()
+    if not zzz_player_injuries then
+        return nil, 0
+    end
+
+    local src   = zzz_player_injuries.health or zzz_player_injuries
+    local max_h = zzz_player_injuries.maxhp or {}
+    local limbs = {"head", "torso", "leftarm", "rightarm", "leftleg", "rightleg"}
+    local max_limb_loss_ratio = 0
+
+    -- 1. Принимаем обновлённый max_limb_loss_ratio из функции
+    max_limb_loss_ratio = CheckDamageByBhs(limbs, src, max_h, max_limb_loss_ratio)
+
+    -- 2. Возвращаем результат проверки напрямую через return
+    return ReturnLowHpLimb(src, max_limb_loss_ratio, max_h)
+end
+
+function TriggerPainByBhs(bhs_injury_level, game_time)
+    local block_until = cu_const.BlockSoundUntil or 0
+    local hit_until   = cu_const.HitPainUntil or 0
+
+    if game_time < hit_until then
+        if game_time >= block_until then
+            cu_pain.StartPainEffect(cu_const.CurrentPainLevel or "low")
+        else
+            cu_pain.StopPainEffect()
+        end
+        return
+    end
+
+    -- Если выбита конечность/голова/торс, поддерживаем таймер индикатора активным
+    -- if bhs_injury_level then
+    --     cu_const.HitPainLevel = bhs_injury_level
+    --     cu_const.HitPainUntil = math.max(hit_until, game_time + 1000)
+    --     hit_until = cu_const.HitPainUntil
+    -- end
+    if bhs_injury_level then
+        cu_const.CurrentPainLevel = bhs_injury_level
+        cu_const.HitPainLevel     = bhs_injury_level
+        cu_const.HitPainUntil     = game_time + 1000
+        hit_until                 = cu_const.HitPainUntil
+    end
+
+    -- 1. Критическая стадия (выбита голова) и обезбол не действует
+    if (bhs_injury_level == "critical") and game_time >= block_until then
+         cu_pain.StartPainEffect("critical")
+        cu_effects.UpdateKnockoutTimer()
+
+    -- 2. Постоянная боль от выбитых конечностей/торса и обезбол не действует
+    elseif (bhs_injury_level == "heavy" or bhs_injury_level == "medium" or bhs_injury_level == "low") and game_time >= block_until then
+         cu_pain.StartPainEffect(bhs_injury_level)
+
+    -- 3. Активен болевой шок от попадания (HitPainUntil) и обезбол не действует
+    elseif game_time < hit_until and game_time >= block_until then
+         cu_pain.StartPainEffect(cu_const.HitPainLevel or "low")
+
+    -- 4. Нет травм ИЛИ действует обезболивающее -> глушим звук/размытие, но не стираем HitPainUntil раньше времени
+    else
+        if game_time >= hit_until then
+            cu_const.HitPainUntil = 0
+        end
+         cu_pain.StopPainEffect()
+    end
+end

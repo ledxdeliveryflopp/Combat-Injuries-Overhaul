@@ -3,8 +3,11 @@
 -- Значения по умолчанию (используются, если игрок ещё не крутил ползунки)
 local defaults = {
     fade_duration     = 12,  -- Длительность затухания (сек)
+
     hemothorax_chance = 40,  -- Шанс гемоторакса от тяжелого ранения в грудь (%)
-    hemothorax_min_hp = 20,  -- Минимальный процент хп для возникновения гемоторакса (%)
+
+    fracture_chance = 40,
+
     low_pain_duration = 5,
     medium_pain_duration = 12,
     heavy_pain_duration = 25,
@@ -15,7 +18,7 @@ local defaults = {
 }
 
 -- Удобная функция для чтения настроек из других ваших скриптов
-function get_config(key)
+function GetMcmGonfig(key)
     if ui_mcm then
         return ui_mcm.get("cu_injuries/" .. key)
     end
@@ -33,21 +36,21 @@ function on_mcm_load()
 
             -- БЛОК 1: Длительность болевого шока
             { id = "desc_pain", type = "desc", text = "ui_mcm_cu_injuries_desc_pain"},
-            { id = "low_pain_duration",      type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.low_pain_duration },
-            { id = "medium_pain_duration",   type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.medium_pain_duration },
-            { id = "heavy_pain_duration",    type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.heavy_pain_duration },
-            { id = "critical_pain_duration", type = "track", val = 2, min = 1, max = 1000, step = 1, def = defaults.critical_pain_duration },
+            { id = "low_pain_duration",      type = "track", val = 2, min = 8, max = 1000, step = 1, def = defaults.low_pain_duration },
+            { id = "medium_pain_duration",   type = "track", val = 2, min = 15, max = 1000, step = 1, def = defaults.medium_pain_duration },
+            { id = "heavy_pain_duration",    type = "track", val = 2, min = 20, max = 1000, step = 1, def = defaults.heavy_pain_duration },
+            { id = "critical_pain_duration", type = "track", val = 2, min = 28, max = 1000, step = 1, def = defaults.critical_pain_duration },
 
             { id = "line1", type = "line" },
 
             -- БЛОК 2: Гемоторакс / Глубокое кровотечение
             { id = "desc_hemo", type = "desc", text = "ui_mcm_cu_injuries_desc_hemo"},
-            { id = "hemothorax_chance", type = "track", val = 2, min = 0, max = 100, step = 1, def = defaults.hemothorax_chance },
-            { id = "hemothorax_min_hp", type = "track", val = 2, min = 5, max = 90, step = 1, def = defaults.hemothorax_min_hp },
+            { id = "hemothorax_chance", type = "track", val = 2, min = 10, max = 100, step = 1, def = defaults.hemothorax_chance },
+            { id = "fracture_chance", type = "track", val = 2, min = 25, max = 100, step = 1, def = defaults.fracture_chance },
 
-            { id = "line2", type = "line" },
+            { id = "line3", type = "line" },
 
-            -- БЛОК 3: Отладка
+            -- БЛОК 4: Отладка
             { id = "desc_debug", type = "desc", text = "ui_mcm_cu_injuries_desc_debug"},
             { id = "debug_keys", type = "check", val = 1, def = defaults.debug_keys },
             { id = "debug_messages", type = "check", val = 1, def = defaults.debug_messages },

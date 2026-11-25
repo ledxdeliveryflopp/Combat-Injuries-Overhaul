@@ -1,0 +1,42 @@
+function cu_hemothorax.RandomizeHemothorax()
+    -- Ставим задержку 25 секунд до следующей попытки бросить кубик (чтобы не спамить каждый кадр)
+    local now = time_global()
+
+    if (cu_const.HemothoraxBlockUntil or 0) > now then
+        printf("[CU_Injuries] Hemothorax block by cooldown")
+        return
+    end
+
+    local hemothorax_chance = cu_injuries_mcm.GetMcmGonfig("hemothorax_chance") or 30
+    if math.random(1, 100) <= hemothorax_chance then
+        printf("[CU_Injuries] Start hemothorax!")
+        cu_const.HemothoraxUntil = math.max(cu_const.HemothoraxUntil or 0, now + 180000) -- 3 минуты
+        news_manager.send_tip(db.actor, game.translate_string("st_cu_hemothorax_start"), nil, nil, 5000)
+    end
+end
+
+function cu_hemothorax.CheckHemothoraxStatus(current_game_time)
+    if (cu_const.HemothoraxUntil or 0) > current_game_time then
+        local cond = db.actor:cast_Actor():conditions()
+        local cur_bleed = db.actor.bleeding or 0
+
+        if cur_bleed < 0.25 and cond and cond.AddWound then
+            cond:AddWound(0.18, hit.wound, 15)
+        end
+
+        local time_left_ratio = (cu_const.HemothoraxUntil - current_game_time) / 180000 -- от 1.0 в начале до 0.0 в конце
+        local max_stamina_limit = 0.25 + (0.35 * time_left_ratio)  
+        if db.actor.power > max_stamina_limit then
+            db.actor.power = max_stamina_limit
+        end
+    end
+end
+
+function GetHemothoraxTime()
+    local now = time_global()
+    local bleed_until = cu_const.HemothoraxUntil or 0
+    if bleed_until > now then
+        return math.ceil((bleed_until - now) / 1000)
+    end
+    return nil
+end
